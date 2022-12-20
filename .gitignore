@@ -1,0 +1,14 @@
+.coverage
+.coverage.*
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+.DS_Store
+__pycache__/
+.idea/
+logs
