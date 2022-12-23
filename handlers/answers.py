@@ -27,45 +27,48 @@ async def cmd_start(message: types.Message):
 
 @router.message(content_types="text")
 async def answer_about_stuff(message: types.Message):
-    if len(stuff_list) < 2:
-        inf_stuff = message.text
-        stuff_list.append(inf_stuff)
-    if len(stuff_list) == 1:
-        if stuff_list[0].isdigit():
-            await message.answer('Введите наименование товара! \n'
-                                 'Пример: Омега 3')
+    text_answer = {'product': 'Введите наименование товара! \n'
+                              'Пример: Омега 3',
+                   'articul': 'Введите артикул товара! \n'
+                              'Пример: 37260674'
+
+                   }
+
+    inf_stuff = message.text
+    if not len(stuff_list):
+        if inf_stuff.isdigit():
+            int(inf_stuff)
+            await message.answer(text_answer['product'])
         else:
-            await message.answer('Введите артикул товара! \n'
-                                 'Пример: 37260674')
-    elif len(stuff_list) == 2:
+            str(inf_stuff)
+            await message.answer(text_answer['articul'])
+
+            stuff_list.append(inf_stuff)
+
+    elif len(stuff_list) == 1:
+        if isinstance(stuff_list[0], int) and not inf_stuff.isdigit():
+            stuff_list.append(str(inf_stuff))
+            await message.answer('Начался поиск товара!')
+        elif isinstance(stuff_list[0], str) and inf_stuff.isdigit():
+            stuff_list.append(int(inf_stuff))
+            stuff_list[0], stuff_list[1] = stuff_list[1], stuff_list[0]
+            await message.answer('Начался поиск товара!')
+        elif isinstance(stuff_list[0], int):
+            await message.answer(text_answer['product'])
+        else:
+            await message.answer(text_answer['articul'])
+
+    if len(stuff_list) == 2:
+
         articul = stuff_list.pop(0)
         product = stuff_list.pop(0)
-        if not articul.isdigit() and product.isdigit():
-            articul, product = product, articul
-        elif articul.isdigit() and product.isdigit():
-            await message.answer('Вы два раза ввели номер артикула!!! \n'
-                                 'Введите по очереди артикул затем наименование \n '
-                                 'Пример: \n'
-                                 '37260674 \n'
-                                 'Затем \n'
-                                 'Омега 3')
-        elif not articul.isdigit() and not product.isdigit():
-            await message.answer('Вы два раза ввели название товара!!! \n'
-                                 'Введите по очереди артикул затем наименование \n '
-                                 'Пример: \n'
-                                 '37260674 \n'
-                                 'Затем \n'
-                                 'Омега 3')
-        else:
-            try:
-                product = str(product)
-                articul = int(articul)
-                await message.answer('Начался поиск товара!')
-                answer_after_pars = await pars_product_wb(product, articul)
-                await message.answer(answer_after_pars)
 
-            except Exception:
-                await message.answer('Попробуйте ввести заново информацию\n'
-                                     'Пример: 37260674\n'
-                                     'или\n'
-                                     'Пример: Омега 3')
+        try:
+            answer_after_pars = await pars_product_wb(product, articul)
+            await message.answer(answer_after_pars)
+
+        except Exception:
+            await message.answer('Попробуйте ввести заново информацию\n'
+                                 'Пример: 37260674\n'
+                                 'или\n'
+                                 'Пример: Омега 3')
