@@ -1,5 +1,4 @@
 import logging
-from collections import namedtuple
 
 from aiogram import Router
 from aiogram import types
@@ -22,7 +21,6 @@ class ItemDescription:
 
 ITEM_DESCRIPTION = ItemDescription()
 
-# ITEM_DESCRIPTION = {'product': None, 'item_code': None}
 
 START_MESSAGE = ('Введите артикул или наименование товара! \n'
                  'Пример: 37260674 \n'
