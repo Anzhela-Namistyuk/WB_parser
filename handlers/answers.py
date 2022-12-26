@@ -1,10 +1,33 @@
+import logging
+from collections import namedtuple
+
 from aiogram import Router
 from aiogram import types
 
 from pars_wb import pars_product_wb
+from pars_wb.configs import configure_logging
 
 router = Router()
-stuff_list = []
+
+configure_logging()
+
+
+class ItemDescription:
+    product = None
+    item_code = None
+
+    def __str__(self):
+        return f'{self.product}, {self.item_code}'
+
+
+ITEM_DESCRIPTION = ItemDescription()
+
+# ITEM_DESCRIPTION = {'product': None, 'item_code': None}
+
+START_MESSAGE = ('Введите артикул или наименование товара! \n'
+                 'Пример: 37260674 \n'
+                 'или \n'
+                 'Пример: Омега 3')
 
 
 @router.message(commands=["description"])
@@ -19,56 +42,53 @@ async def cmd_special_buttons(message: types.Message):
 
 @router.message(commands=["start"])
 async def cmd_start(message: types.Message):
-    await message.answer('Привет! Введите артикул или наименование товара! \n'
-                         'Пример: 37260674 \n'
-                         'или \n'
-                         'Пример: Омега 3')
+    await message.answer('Привет!')
+    await message.answer(START_MESSAGE)
 
 
 @router.message(content_types="text")
 async def answer_about_stuff(message: types.Message):
     text_answer = {'product': 'Введите наименование товара! \n'
                               'Пример: Омега 3',
-                   'articul': 'Введите артикул товара! \n'
-                              'Пример: 37260674'
+                   'item_code': 'Введите артикул товара! \n'
+                                'Пример: 37260674'
 
                    }
 
     inf_stuff = message.text
-    if not len(stuff_list):
-        if inf_stuff.isdigit():
-            int(inf_stuff)
-            await message.answer(text_answer['product'])
-        else:
-            str(inf_stuff)
-            await message.answer(text_answer['articul'])
 
-            stuff_list.append(inf_stuff)
+    if not ITEM_DESCRIPTION.item_code and inf_stuff.isdigit():
+        ITEM_DESCRIPTION.item_code = int(inf_stuff)
 
-    elif len(stuff_list) == 1:
-        if isinstance(stuff_list[0], int) and not inf_stuff.isdigit():
-            stuff_list.append(str(inf_stuff))
-            await message.answer('Начался поиск товара!')
-        elif isinstance(stuff_list[0], str) and inf_stuff.isdigit():
-            stuff_list.append(int(inf_stuff))
-            stuff_list[0], stuff_list[1] = stuff_list[1], stuff_list[0]
-            await message.answer('Начался поиск товара!')
-        elif isinstance(stuff_list[0], int):
-            await message.answer(text_answer['product'])
-        else:
-            await message.answer(text_answer['articul'])
+    elif not ITEM_DESCRIPTION.product:
+        ITEM_DESCRIPTION.product = inf_stuff
+    logging.debug(f'{ITEM_DESCRIPTION.product} , {ITEM_DESCRIPTION.item_code}')
 
-    if len(stuff_list) == 2:
+    if not ITEM_DESCRIPTION.product and not ITEM_DESCRIPTION.item_code:
+        await message.answer(text_answer['product'])
 
-        articul = stuff_list.pop(0)
-        product = stuff_list.pop(0)
+    elif not ITEM_DESCRIPTION.item_code:
+        await message.answer(text_answer['item_code'])
 
+    elif not ITEM_DESCRIPTION.product:
+        await message.answer(text_answer['product'])
+    else:
+        await message.answer('Начался поиск товара!')
         try:
-            answer_after_pars = await pars_product_wb(product, articul)
+
+            answer_after_pars = await pars_product_wb(
+                ITEM_DESCRIPTION.product, ITEM_DESCRIPTION.item_code
+            )
             await message.answer(answer_after_pars)
 
-        except Exception:
+        except Exception as e:
+            logging.info(f'Произошла ошибка{e}')
             await message.answer('Попробуйте ввести заново информацию\n'
                                  'Пример: 37260674\n'
                                  'или\n'
                                  'Пример: Омега 3')
+
+        ITEM_DESCRIPTION.item_code = None
+        ITEM_DESCRIPTION.product = None
+        await message.answer(START_MESSAGE)
+
